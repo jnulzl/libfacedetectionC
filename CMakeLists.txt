@@ -53,12 +53,13 @@ SET(fdt_inc_dir    ${fdt_base_dir}/src)
 
 SET(fdt_lib_name   facedetection)
 
-FILE(GLOB_RECURSE fdt_source_files ${fdt_src_dir}/*.cpp)
+FILE(GLOB_RECURSE fdt_source_files ${fdt_src_dir}/*.c)
 LIST(SORT         fdt_source_files)
 
 SET(INSTALLHEADER_FILES ${fdt_inc_dir}/facedetectcnn.h)
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -155,6 +156,9 @@ if (DEMO)
 
     add_executable(detect-image-demo ${fdt_base_dir}/example/detect-image.cpp)
     target_link_libraries(detect-image-demo ${fdt_lib_name} ${OpenCV_LIBS})
+
+    add_executable(detect-image-list ${fdt_base_dir}/example/detect-image-list.cpp)
+    target_link_libraries(detect-image-list ${fdt_lib_name} ${OpenCV_LIBS})
 
     add_executable(detect-camera-demo ${fdt_base_dir}/example/detect-camera.cpp)
     target_link_libraries(detect-camera-demo ${fdt_lib_name} ${OpenCV_LIBS})

@@ -48,21 +48,13 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    if(argc != 2)
+    if(argc != 3)
     {
-        printf("Usage: %s <image_file_name>\n", argv[0]);
+        printf("Usage: %s <img_list> thresh\n", argv[0]);
         return -1;
     }
 
-	//load an image and convert it to gray (single-channel)
-	Mat image = imread(argv[1]); 
-	if(image.empty())
-	{
-		fprintf(stderr, "Can not load the image file %s.\n", argv[1]);
-		return -1;
-	}
-
-	int * pResults = NULL; 
+	int * pResults = NULL;
     //pBuffer is used in the detection functions.
     //If you call functions in multiple threads, please create one buffer for each thread!
     unsigned char * pBuffer = (unsigned char *)malloc(DETECT_BUFFER_SIZE);
@@ -71,7 +63,15 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Can not alloc buffer.\n");
         return -1;
     }
-	
+    float thresh = atof(argv[2]);
+
+	//load an image and convert it to gray (single-channel)
+	Mat image = imread(argv[1]); 
+	if(image.empty())
+	{
+		fprintf(stderr, "Can not load the image file %s.\n", argv[1]);
+		return -1;
+	}
 
 	///////////////////////////////////////////
 	// CNN face detection 
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
     TickMeter cvtm;
     cvtm.start();
 
-	pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step);
+	pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step, thresh);
     
     cvtm.stop();    
     printf("time = %gms\n", cvtm.getTimeMilli());
@@ -124,6 +124,6 @@ int main(int argc, char* argv[])
 
     //release the buffer
     free(pBuffer);
-
+    release_resources();
 	return 0;
 }

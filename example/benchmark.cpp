@@ -15,11 +15,13 @@ using namespace cv;
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2)
+    if (argc != 3)
     {
-        printf("Usage: %s <image_file_name>\n", argv[0]);
+        printf("Usage: %s <image_file_name> thresh\n", argv[0]);
         return -1;
     }
+    float thresh = atof(argv[2]);
+
     //load an image and convert it to gray (single-channel)
     Mat image = imread(argv[1]);
     if (image.empty())
@@ -54,7 +56,7 @@ int main(int argc, char* argv[])
 
     int total_count = 256;
 
-    pResults = facedetect_cnn(pBuffers[0], image.ptr<unsigned char>(0), (int)image.cols, (int)image.rows, (int)image.step);
+    pResults = facedetect_cnn(pBuffers[0], image.ptr<unsigned char>(0), (int)image.cols, (int)image.rows, (int)image.step, thresh);
 
     TickMeter tm;
     tm.start();
@@ -68,7 +70,7 @@ int main(int argc, char* argv[])
 #else
         int idx = 0;
 #endif
-        pResults = facedetect_cnn(pBuffers[idx], image.ptr<unsigned char>(0), (int)image.cols, (int)image.rows, (int)image.step);
+        pResults = facedetect_cnn(pBuffers[idx], image.ptr<unsigned char>(0), (int)image.cols, (int)image.rows, (int)image.step, thresh);
     }
     tm.stop();
     double t = tm.getTimeMilli();
@@ -77,7 +79,7 @@ int main(int argc, char* argv[])
 
     //release the buffer
     free(p);
-
+    release_resources();
     return 0;
 }
 
