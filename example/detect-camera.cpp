@@ -48,11 +48,12 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    if(argc != 2)
+    if(argc != 3)
     {
-        printf("Usage: %s <camera index>\n", argv[0]);
+        printf("Usage: %s <camera index> thresh\n", argv[0]);
         return -1;
     }
+    float thresh = atof(argv[2]);
 
 	int * pResults = NULL; 
     //pBuffer is used in the detection functions.
@@ -95,7 +96,7 @@ int main(int argc, char* argv[])
             TickMeter cvtm;
             cvtm.start();
 
-            pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step);
+            pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step, thresh);
             
             cvtm.stop();    
             printf("time = %gms\n", cvtm.getTimeMilli());

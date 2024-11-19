@@ -46,7 +46,7 @@ the use of this software, even if advised of the possibility of such damage.
 
 
 FACEDETECTION_EXPORT int * facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x20000 Bytes!!
-                    unsigned char * rgb_image_data, int width, int height, int step); //input image, it must be BGR (three channels) insteed of RGB image!
+                    unsigned char * rgb_image_data, int width, int height, int step, float thresh); //input image, it must be BGR (three channels) insteed of RGB image!
 
 /*
 DO NOT EDIT the following code if you don't really understand it.
@@ -404,7 +404,7 @@ class Filters{
 
 };
 
-std::vector<FaceRect> objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step);
+std::vector<FaceRect> objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, float thresh);
 
 CDataBlob<float> setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor=32);
 CDataBlob<float> convolution(const CDataBlob<float>& inputData, const Filters<float>& filters, bool do_relu = true);

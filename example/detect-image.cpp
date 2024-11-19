@@ -48,11 +48,12 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    if(argc != 2)
+    if(argc != 3)
     {
-        printf("Usage: %s <image_file_name>\n", argv[0]);
+        printf("Usage: %s <img_list> thresh\n", argv[0]);
         return -1;
     }
+    float thresh = atof(argv[2]);
 
 	//load an image and convert it to gray (single-channel)
 	Mat image = imread(argv[1]); 
@@ -82,7 +83,7 @@ int main(int argc, char* argv[])
     TickMeter cvtm;
     cvtm.start();
 
-	pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step);
+	pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step, thresh);
     
     cvtm.stop();    
     printf("time = %gms\n", cvtm.getTimeMilli());

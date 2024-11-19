@@ -156,6 +156,9 @@ if (DEMO)
     add_executable(detect-image-demo ${fdt_base_dir}/example/detect-image.cpp)
     target_link_libraries(detect-image-demo ${fdt_lib_name} ${OpenCV_LIBS})
 
+    add_executable(detect-image-list ${fdt_base_dir}/example/detect-image-list.cpp)
+    target_link_libraries(detect-image-list ${fdt_lib_name} ${OpenCV_LIBS})
+
     add_executable(detect-camera-demo ${fdt_base_dir}/example/detect-camera.cpp)
     target_link_libraries(detect-camera-demo ${fdt_lib_name} ${OpenCV_LIBS})
     

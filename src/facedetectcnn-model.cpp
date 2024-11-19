@@ -64,7 +64,7 @@ void init_parameters()
         g_pFilters[i] = param_pConvInfo[i];
 }
 
-std::vector<FaceRect> objectdetect_cnn(unsigned char * rgbImageData, int width, int height, int step)
+std::vector<FaceRect> objectdetect_cnn(unsigned char * rgbImageData, int width, int height, int step, float thresh)
 {
 
     TIME_START;
@@ -195,13 +195,13 @@ std::vector<FaceRect> objectdetect_cnn(unsigned char * rgbImageData, int width, 
     TIME_END("decode")
 
     TIME_START;
-    std::vector<FaceRect> facesInfo = detection_output(cls, reg, kps, obj, 0.45f, 0.2f, 1000, 512);
+    std::vector<FaceRect> facesInfo = detection_output(cls, reg, kps, obj, 0.45f, thresh, 1000, 512);
     TIME_END("detection output")
     return facesInfo;
 }
 
 int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x9000 Bytes!!
-    unsigned char * rgb_image_data, int width, int height, int step) //input image, it must be BGR (three-channel) image!
+    unsigned char * rgb_image_data, int width, int height, int step, float thresh) //input image, it must be BGR (three-channel) image!
 {
 
     if (!result_buffer)
@@ -215,7 +215,7 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
     result_buffer[2] = 0;
     result_buffer[3] = 0;
 
-    std::vector<FaceRect> faces = objectdetect_cnn(rgb_image_data, width, height, step);
+    std::vector<FaceRect> faces = objectdetect_cnn(rgb_image_data, width, height, step, thresh);
 
     int num_faces =(int)faces.size();
     num_faces = MIN(num_faces, 1024); //1024 = 0x9000 / (16 * 2 + 4)
