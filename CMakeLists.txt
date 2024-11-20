@@ -167,35 +167,6 @@ if (DEMO)
     target_link_libraries(benchmark ${fdt_lib_name} ${OpenCV_LIBS})
 endif()
 
-if (GSTREAMER)
-    find_package(OpenCV REQUIRED)
-
-    include(FindPkgConfig)
-    pkg_search_module(GSTREAMER REQUIRED gstreamer-1.0)
-    pkg_search_module(GSTREAMER_BASE REQUIRED gstreamer-base-1.0)
-    pkg_search_module(GSTREAMER_VIDEO REQUIRED gstreamer-video-1.0)
-
-    add_library(gstfacedetect SHARED
-        example/libfacedetect.cpp
-    )
-
-    include_directories(gstfacedetect PRIVATE
-        ${GSTREAMER_INCLUDE_DIRS}
-        ${GSTREAMER_BASE_INCLUDE_DIRS}
-        ${GSTREAMER_VIDEO_INCLUDE_DIRS}
-        ${OpenCV_INCLUDE_DIRS}
-    )
-
-    target_link_libraries(gstfacedetect
-        ${GSTREAMER_LIBRARIES}
-        ${GSTREAMER_BASE_LIBRARIES}
-        ${GSTREAMER_VIDEO_LIBRARIES}
-        ${OpenCV_LIBS}
-        ${fdt_lib_shared}
-    )
-
-endif()
-
 message("CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message("LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
 message("AVX512 = ${ENABLE_AVX512}")

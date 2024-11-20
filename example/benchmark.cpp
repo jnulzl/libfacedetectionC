@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     float thresh = atof(argv[2]);
-
+    init_facedetect_resources();
     //load an image and convert it to gray (single-channel)
     Mat image = imread(argv[1]);
     if (image.empty())
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
     //release the buffer
     free(p);
-    release_resources();
+    release_facedetect_resources();
     return 0;
 }
 

@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     float thresh = atof(argv[2]);
+    init_facedetect_resources();
 
 	int * pResults = NULL; 
     //pBuffer is used in the detection functions.
@@ -142,6 +143,6 @@ int main(int argc, char* argv[])
 
     //release the buffer
     free(pBuffer);
-    release_resources();
+    release_facedetect_resources();
 	return 0;
 }

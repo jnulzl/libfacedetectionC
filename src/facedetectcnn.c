@@ -50,6 +50,12 @@ typedef struct NormalizedBBox_
     float score;
 } NormalizedBBox;
 
+//#define __DEBUG_ALLOC_FREE_NUM_
+
+#ifdef __DEBUG_ALLOC_FREE_NUM_
+    static int g_myAlloc_num = 0;
+#endif
+
 void* myAlloc(size_t size)
 {
     char *ptr, *ptr0;
@@ -63,6 +69,10 @@ void* myAlloc(size_t size)
 	ptr = (char*)(((size_t)(ptr0 + sizeof(char*) + 1) + _MALLOC_ALIGN - 1) & ~(size_t)(_MALLOC_ALIGN - 1));
 	*(char**)(ptr - sizeof(char*)) = ptr0;
 
+#ifdef __DEBUG_ALLOC_FREE_NUM_
+    g_myAlloc_num++;
+    printf("myAlloc: %d\n", g_myAlloc_num);
+#endif
 	return ptr;
 }
 
@@ -74,36 +84,48 @@ void myFree_(void* ptr)
 		if (((size_t)ptr & (_MALLOC_ALIGN - 1)) != 0)
 			return;
 		free(*((char**)ptr - 1));
+#ifdef __DEBUG_ALLOC_FREE_NUM_
+        g_myAlloc_num--;
+        printf("myFree: %d\n", g_myAlloc_num);
+#endif
 	}
 }
 
-
 void CDataBlob_create(CDataBlob* blob, int r, int c, int ch)
 {
-    blob->data = NULL;
-    CDataBlob_setNULL(blob);
-
-    blob->rows = r;
-    blob->cols = c;
-    blob->channels = ch;
-
+    int channelStep = 0;
     //alloc space for int8 array
-    int remBytes = (sizeof(float)* blob->channels) % (_MALLOC_ALIGN / 8);
+    int remBytes = (sizeof(float)* ch) % (_MALLOC_ALIGN / 8);
     if (remBytes == 0)
     {
-        blob->channelStep = blob->channels * sizeof(float);
+        channelStep = ch * sizeof(float);
     }
     else
     {
-        blob->channelStep = (blob->channels * sizeof(float)) + (_MALLOC_ALIGN / 8) - remBytes;
+        channelStep = (ch * sizeof(float)) + (_MALLOC_ALIGN / 8) - remBytes;
+    }
+    int totalCapacity = r * c * channelStep;
+    if((0 != blob->flag) && (blob->data) && (blob->totalCapacity >= totalCapacity))
+    {
+        blob->rows = r;
+        blob->cols = c;
+        blob->channels = ch;
+        blob->channelStep = channelStep;
+        return;
     }
 
-    size_t tmp = blob->rows * blob->cols * blob->channelStep;
-    blob->data = (float*)myAlloc(tmp);
+    CDataBlob_release(blob);
+    blob->data = (float *)myAlloc(totalCapacity);
     if (blob->data == NULL)
     {
         fprintf(stderr, "%s : Failed to alloc memeory for uint8 data blob: %d, %d %d\n",__FUNCTION__ , blob->rows, blob->cols, blob->channels);
     }
+    blob->rows = r;
+    blob->cols = c;
+    blob->channels = ch;
+    blob->channelStep = channelStep;
+    blob->totalCapacity = totalCapacity;
+    blob->flag = 1;
     CDataBlob_setZero(blob);
 }
 
@@ -115,7 +137,7 @@ void CDataBlob_setZero(CDataBlob* blob)
     }
 }
 
-void CDataBlob_setNULL(CDataBlob* blob)
+void CDataBlob_release(CDataBlob* blob) //CDataBlob_setNULL
 {
     if (blob->data)
     {
@@ -195,8 +217,8 @@ void Filters_create(Filters* filters, const ConvInfoStruct* convinfo)
 
 void Filters_release(Filters* filters)
 {
-    CDataBlob_setNULL(&filters->weights);
-    CDataBlob_setNULL(&filters->biases);
+    CDataBlob_release(&filters->weights);
+    CDataBlob_release(&filters->biases);
 }
 
 void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor,
@@ -631,24 +653,24 @@ void convolution(const CDataBlob* inputData, const Filters* filters, int do_relu
         relu(outputData);
 }
 
+static CDataBlob __g_blob_in_convolutionDP__ = {0, 0, 0, 0, 0, 0, NULL, NULL};
 void convolutionDP(const CDataBlob* inputData, const Filters* filtersP, const Filters* filtersD, int do_relu,
                    CDataBlob* outputData)
 {
-    CDataBlob tmp;
-    convolution(inputData, filtersP, 0, &tmp);
-    convolution(&tmp, filtersD, do_relu, outputData);
-    CDataBlob_setNULL(&tmp);
+
+//    printf("00000000000000 : %p, %d\n", tmp.data, tmp.totalCapacity);
+    convolution(inputData, filtersP, 0, &__g_blob_in_convolutionDP__);
+    convolution(&__g_blob_in_convolutionDP__, filtersD, do_relu, outputData);
 }
 
+static CDataBlob __g_blob_in_convolution4layerUnit__ = {0, 0, 0, 0, 0, 0, NULL, NULL};
 void convolution4layerUnit(const CDataBlob* inputData,
                 const Filters* filtersP1, const Filters* filtersD1,
                 const Filters* filtersP2, const Filters* filtersD2, int do_relu,
                 CDataBlob* outputData)
 {
-    CDataBlob tmp;
-    convolutionDP(inputData, filtersP1, filtersD1, 1, &tmp);
-    convolutionDP(&tmp, filtersP2, filtersD2, do_relu, outputData);
-    CDataBlob_setNULL(&tmp);
+    convolutionDP(inputData, filtersP1, filtersD1, 1, &__g_blob_in_convolution4layerUnit__);
+    convolutionDP(&__g_blob_in_convolution4layerUnit__, filtersP2, filtersD2, do_relu, outputData);
 }
 
 //only 2X2 S2 is supported
@@ -900,7 +922,7 @@ void detection_output(const CDataBlob* cls,
                       float confidence_threshold,
                       int top_k,
                       int keep_top_k,
-                      FaceRect** face_rects, int* num_faces)
+                      CDataBlob* face_blob, int* num_faces)
 {
     if (CDataBlob_isEmpty(reg) || CDataBlob_isEmpty(cls) || CDataBlob_isEmpty(kps) ||
         CDataBlob_isEmpty(obj))//|| iou.isEmpty())
@@ -938,7 +960,16 @@ void detection_output(const CDataBlob* cls,
             valid_count++;
         }
     }
-    NormalizedBBox *score_bbox_vec = (NormalizedBBox *) myAlloc(valid_count * sizeof(NormalizedBBox));
+    NormalizedBBox *score_bbox_vec = NULL;
+    size_t score_bbox_vec_alloc_size = valid_count * sizeof(NormalizedBBox);
+    if(__g_blob_in_convolutionDP__.totalCapacity < score_bbox_vec_alloc_size)
+    {
+        score_bbox_vec = (NormalizedBBox *) myAlloc(score_bbox_vec_alloc_size);
+    }
+    else
+    {
+        score_bbox_vec = (NormalizedBBox*)(__g_blob_in_convolutionDP__.data);
+    }
 
     valid_count = 0;
     //get the candidates those are > confidence_threshold
@@ -958,13 +989,11 @@ void detection_output(const CDataBlob* cls,
 
             //store the five landmarks
             memcpy(bb.lm, pKps + 10 * i, 10 * sizeof(float));
-//            score_bbox_vec.push_back(std::make_pair(conf, bb));
             score_bbox_vec[valid_count++] = bb;
         }
     }
 
     //Sort the score pair according to the scores in descending order
-//    std::stable_sort(score_bbox_vec.begin(), score_bbox_vec.end(), SortScoreBBoxPairDescend);
     qsort(score_bbox_vec, valid_count, sizeof(NormalizedBBox), SortScoreBBoxPairDescend);
 
     // Keep top_k scores if needed.
@@ -975,7 +1004,16 @@ void detection_output(const CDataBlob* cls,
     }
 
     //Do NMS
-    NormalizedBBox *final_score_bbox_vec = (NormalizedBBox *) myAlloc(keep_top_k * sizeof(NormalizedBBox));
+    NormalizedBBox *final_score_bbox_vec = NULL;
+    size_t final_score_bbox_vec_alloc_size = keep_top_k * sizeof(NormalizedBBox);
+    if(__g_blob_in_convolution4layerUnit__.totalCapacity < final_score_bbox_vec_alloc_size)
+    {
+        final_score_bbox_vec = (NormalizedBBox *) myAlloc(final_score_bbox_vec_alloc_size);
+    }
+    else
+    {
+        final_score_bbox_vec = (NormalizedBBox*)(__g_blob_in_convolution4layerUnit__.data);
+    }
     int final_count = 0;
     for (int idx = 0; idx < valid_count; idx++)
     {
@@ -1003,10 +1041,13 @@ void detection_output(const CDataBlob* cls,
 //        final_score_bbox_vec.resize(keep_top_k);
 //    }
 
-    //copy the results to the output blob
-//    int num_faces = (int)final_score_bbox_vec.size();
+    FaceRect *face_rects = (FaceRect*)(face_blob->data);
+    size_t face_rects_alloc_size = final_count * sizeof(FaceRect);
+    if(face_blob->totalCapacity < face_rects_alloc_size)
+    {
+        final_count = (int)(face_blob->totalCapacity / sizeof(FaceRect));
+    }
     *num_faces = final_count;
-    *face_rects = (FaceRect*)myAlloc(final_count * sizeof(FaceRect));
     for (int fi = 0; fi < final_count; fi++)
     {
         const NormalizedBBox *pp = &final_score_bbox_vec[fi];
@@ -1022,8 +1063,20 @@ void detection_output(const CDataBlob* cls,
         {
             r.lm[i] = (int) (pp->lm[i]);
         }
-        (*face_rects)[fi] = r;
+        face_rects[fi] = r;
     }
-    myFree(&score_bbox_vec);
-    myFree(&final_score_bbox_vec);
+    if(__g_blob_in_convolutionDP__.totalCapacity < score_bbox_vec_alloc_size)
+    {
+        myFree(&score_bbox_vec);
+    }
+    if(__g_blob_in_convolution4layerUnit__.totalCapacity < final_score_bbox_vec_alloc_size)
+    {
+        myFree(&final_score_bbox_vec);
+    }
+}
+
+void deinit_middle_blobs()
+{
+    CDataBlob_release(&__g_blob_in_convolutionDP__);
+    CDataBlob_release(&__g_blob_in_convolution4layerUnit__);
 }

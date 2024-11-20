@@ -77,6 +77,7 @@ int main(int argc, char* argv[])
         return -1;
     }
     float thresh = atof(argv[2]);
+    init_facedetect_resources();
 
     std::vector<std::string> img_list;
     get_all_line_from_txt(argv[1], img_list);
@@ -145,6 +146,6 @@ int main(int argc, char* argv[])
     }
     //release the buffer
     free(pBuffer);
-    release_resources();
+    release_facedetect_resources();
 	return 0;
 }

@@ -40,7 +40,6 @@ the use of this software, even if advised of the possibility of such damage.
 #include <stdlib.h>
 #include "facedetectcnn.h"
 
-
 #if 0
 #include <opencv2/opencv.hpp>
 cv::TickMeter cvtm;
@@ -53,271 +52,207 @@ cv::TickMeter cvtm;
 
 
 #define NUM_CONV_LAYER 53
-
 extern ConvInfoStruct param_pConvInfo[NUM_CONV_LAYER];
-Filters g_pFilters[NUM_CONV_LAYER];
-int param_initialized = 0;
+static Filters g_pFilters[NUM_CONV_LAYER];
+static int g_param_initialized = 0;
 void init_parameters()
 {
-    for(int i = 0; i < NUM_CONV_LAYER; i++)
+    for(int idx = 0; idx < NUM_CONV_LAYER; idx++)
     {
-        Filters_create(&g_pFilters[i], &param_pConvInfo[i]);
+        Filters_create(&g_pFilters[idx], &param_pConvInfo[idx]);
     }
 }
 
 void deinit_parameters()
 {
-    for(int i = 0; i < NUM_CONV_LAYER; i++)
+    for(int idx = 0; idx < NUM_CONV_LAYER; idx++)
     {
-        Filters_release(&g_pFilters[i]);
+        Filters_release(&g_pFilters[idx]);
     }
-    param_initialized = 0;
+    g_param_initialized = 0;
 }
 
 #define NUM_MIDDLE_TMP_BLOB 50
+static CDataBlob g_pBlob[NUM_MIDDLE_TMP_BLOB];
+void init_blob()
+{
+    for(int idx = 0; idx < NUM_MIDDLE_TMP_BLOB; idx++)
+    {
+        g_pBlob[idx].rows = 0;
+        g_pBlob[idx].cols = 0;
+        g_pBlob[idx].channels = 0;
+        g_pBlob[idx].channelStep = 0;
+        g_pBlob[idx].totalCapacity = 0;
+        g_pBlob[idx].flag = 0;
+        g_pBlob[idx].data = NULL;
 
-CDataBlob* g_pBlob[NUM_MIDDLE_TMP_BLOB];
+        char blob_name[256] = {'\0'};
+        sprintf(blob_name, "g_pBlob_%d", idx);
+        g_pBlob[idx].name = blob_name;
+    }
+}
+
 void deinit_blob()
 {
-    for(int i = 0; i < NUM_MIDDLE_TMP_BLOB; i++)
+    for(int idx = 0; idx < NUM_MIDDLE_TMP_BLOB; idx++)
     {
-        CDataBlob_setNULL(g_pBlob[i]);
+        CDataBlob_release(&g_pBlob[idx]);// CDataBlob_release
     }
 }
 
-void release_resources()
+void init_facedetect_resources()
+{
+    init_parameters();
+    init_blob();
+}
+
+void release_facedetect_resources()
 {
     deinit_parameters();
+    deinit_blob();
+    deinit_middle_blobs();
 }
 void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height, int step, float thresh,
-                     FaceRect** faceRects, int* num_faces)
+                     CDataBlob* face_blob , int* num_faces)
 {
-
     TIME_START;
-    if (!param_initialized)
-    {
-        init_parameters();
-        param_initialized = 1;
-    }
-    TIME_END("init");
-
-    TIME_START;
-    CDataBlob fx;
-    g_pBlob[0] = &fx;
-    /*auto fx = */setDataFrom3x3S2P1to1x1S1P0FromImage(rgbImageData, width, height, 3, step, 32, &fx);
+    /*auto fx = */setDataFrom3x3S2P1to1x1S1P0FromImage(rgbImageData, width, height, 3, step, 32, &g_pBlob[0]);
     TIME_END("convert data");
 
     /***************CONV0*********************/
     TIME_START;
-    CDataBlob fx1;
-    g_pBlob[1] = &fx1;
-    /*fx = */convolution(&fx, &g_pFilters[0], 1, &fx1);
+    /*fx = */convolution(&g_pBlob[0], &g_pFilters[0], 1, &g_pBlob[1]);
     TIME_END("conv_head");
 
     TIME_START;
-    CDataBlob fx2;
-    g_pBlob[2] = &fx2;
-    /*fx = */convolutionDP(&fx1, &g_pFilters[1], &g_pFilters[2], 1, &fx2);
+    /*fx = */convolutionDP(&g_pBlob[1], &g_pFilters[1], &g_pFilters[2], 1, &g_pBlob[2]);
     TIME_END("conv0");
 
     TIME_START;
-    CDataBlob fx3;
-    g_pBlob[3] = &fx3;
-    /*fx = */maxpooling2x2S2(&fx2, &fx3);
+    /*fx = */maxpooling2x2S2(&g_pBlob[2], &g_pBlob[3]);
     TIME_END("pool0");
 
     /***************CONV1*********************/
     TIME_START;
-    CDataBlob fx4;
-    g_pBlob[4] = &fx4;
-    /*fx = */convolution4layerUnit(&fx3, &g_pFilters[3], &g_pFilters[4], &g_pFilters[5], &g_pFilters[6], 1, &fx4);
+    /*fx = */convolution4layerUnit(&g_pBlob[3], &g_pFilters[3], &g_pFilters[4], &g_pFilters[5], &g_pFilters[6], 1, &g_pBlob[4]);
     TIME_END("conv1");
 
     /***************CONV2*********************/
     TIME_START;
-    CDataBlob fx5;
-    g_pBlob[5] = &fx5;
-    /*fx = */convolution4layerUnit(&fx4, &g_pFilters[7], &g_pFilters[8], &g_pFilters[9], &g_pFilters[10], 1, &fx5);
+    /*fx = */convolution4layerUnit(&g_pBlob[4], &g_pFilters[7], &g_pFilters[8], &g_pFilters[9], &g_pFilters[10], 1, &g_pBlob[5]);
     TIME_END("conv2");
 
     /***************CONV3*********************/
     TIME_START;
-    CDataBlob fx6;
-    g_pBlob[6] = &fx6;
-    /*fx = */maxpooling2x2S2(&fx5, &fx6);
+    /*fx = */maxpooling2x2S2(&g_pBlob[5], &g_pBlob[6]);
     TIME_END("pool3");
 
     TIME_START;
-    CDataBlob fb1;
-    g_pBlob[7] = &fb1;
-    /*auto fb1 = */convolution4layerUnit(&fx6, &g_pFilters[11], &g_pFilters[12], &g_pFilters[13], &g_pFilters[14], 1, &fb1);
+    /*auto fb1 = */convolution4layerUnit(&g_pBlob[6], &g_pFilters[11], &g_pFilters[12], &g_pFilters[13], &g_pFilters[14], 1, &g_pBlob[7]);
     TIME_END("conv3");
 
     /***************CONV4*********************/
     TIME_START;
-    CDataBlob fxx;
-    g_pBlob[8] = &fxx;
-    /*fx = */maxpooling2x2S2(&fb1, &fxx);
+    /*fx = */maxpooling2x2S2(&g_pBlob[7], &g_pBlob[8]);
     TIME_END("pool4");
 
     TIME_START;
-    CDataBlob fb2;
-    g_pBlob[9] = &fb2;
-    /*auto fb2 = */convolution4layerUnit(&fxx, &g_pFilters[15], &g_pFilters[16], &g_pFilters[17], &g_pFilters[18], 1, &fb2);
+    /*auto fb2 = */convolution4layerUnit(&g_pBlob[8], &g_pFilters[15], &g_pFilters[16], &g_pFilters[17], &g_pFilters[18], 1, &g_pBlob[9]);
     TIME_END("conv4");
 
     /***************CONV5*********************/
     TIME_START;
-    CDataBlob fx_conv5;
-    g_pBlob[10] = &fx_conv5;
-    /* fx = */maxpooling2x2S2(&fb2, &fx_conv5);
+    /* fx = */maxpooling2x2S2(&g_pBlob[9], &g_pBlob[10]);
     TIME_END("pool5");
 
     TIME_START;
-    CDataBlob fb3;
-    g_pBlob[11] = &fb3;
-    /*auto fb3 = */convolution4layerUnit(&fx_conv5, &g_pFilters[19], &g_pFilters[20], &g_pFilters[21], &g_pFilters[22], 1, &fb3);
+    /*auto fb3 = */convolution4layerUnit(&g_pBlob[10], &g_pFilters[19], &g_pFilters[20], &g_pFilters[21], &g_pFilters[22], 1, &g_pBlob[11]);
     TIME_END("conv5");
 
-    CDataBlob pred_reg[3], pred_cls[3], pred_kps[3], pred_obj[3];
-    g_pBlob[12] = &pred_reg[0];
-    g_pBlob[13] = &pred_reg[1];
-    g_pBlob[14] = &pred_reg[2];
-
-    g_pBlob[15] = &pred_cls[0];
-    g_pBlob[16] = &pred_cls[1];
-    g_pBlob[17] = &pred_cls[2];
-
-    g_pBlob[18] = &pred_kps[0];
-    g_pBlob[19] = &pred_kps[1];
-    g_pBlob[20] = &pred_kps[2];
-
-    g_pBlob[21] = &pred_obj[0];
-    g_pBlob[22] = &pred_obj[1];
-    g_pBlob[23] = &pred_obj[2];
     /***************branch5*********************/
     TIME_START;
-    CDataBlob fb3_3;
-    g_pBlob[24] = &fb3_3;
-    /*fb3 = */convolutionDP(&fb3, &g_pFilters[27], &g_pFilters[28], 1, &fb3_3);
-    /*pred_cls[2] = */convolutionDP(&fb3_3, &g_pFilters[33], &g_pFilters[34], 0, &pred_cls[2]);
-    /*pred_reg[2] = */convolutionDP(&fb3_3, &g_pFilters[39], &g_pFilters[40], 0, &pred_reg[2]);
-    /*pred_kps[2] = */convolutionDP(&fb3_3, &g_pFilters[51], &g_pFilters[52], 0, &pred_kps[2]);
-    /*pred_obj[2] = */convolutionDP(&fb3_3, &g_pFilters[45], &g_pFilters[46], 0, &pred_obj[2]);
+    /*fb3 = */convolutionDP(&g_pBlob[11], &g_pFilters[27], &g_pFilters[28], 1, &g_pBlob[24]);
+    /*pred_cls[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[33], &g_pFilters[34], 0, &g_pBlob[17]);
+    /*pred_reg[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[39], &g_pFilters[40], 0, &g_pBlob[14]);
+    /*pred_kps[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[51], &g_pFilters[52], 0, &g_pBlob[20]);
+    /*pred_obj[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[45], &g_pFilters[46], 0, &g_pBlob[23]);
     TIME_END("branch5");
 
     /*****************add5*********************/    
     TIME_START;
-    CDataBlob fb_up;
-    g_pBlob[25] = &fb_up;
-    upsampleX2(&fb3_3, &fb_up);
-    CDataBlob fb_add5;
-    g_pBlob[26] = &fb_add5;
-    /*fb2 = */elementAdd(&fb_up, &fb2, &fb_add5);
+    upsampleX2(&g_pBlob[24], &g_pBlob[25]);
+    /*fb2 = */elementAdd(&g_pBlob[25], &g_pBlob[9], &g_pBlob[26]);
     TIME_END("add5");
 
     /*****************add6*********************/    
     TIME_START;
-    CDataBlob fb_add6;
-    g_pBlob[27] = &fb_add6;
-    /*fb2 = */convolutionDP(&fb_add5, &g_pFilters[25], &g_pFilters[26], 1, &fb_add6);
-    /*pred_cls[1] = */convolutionDP(&fb_add6, &g_pFilters[31], &g_pFilters[32], 0, &pred_cls[1]);
-    /*pred_reg[1] = */convolutionDP(&fb_add6, &g_pFilters[37], &g_pFilters[38], 0, &pred_reg[1]);
-    /*pred_kps[1] = */convolutionDP(&fb_add6, &g_pFilters[49], &g_pFilters[50], 0, &pred_kps[1]);
-    /*pred_obj[1] = */convolutionDP(&fb_add6, &g_pFilters[43], &g_pFilters[44], 0, &pred_obj[1]);
+    /*fb2 = */convolutionDP(&g_pBlob[26], &g_pFilters[25], &g_pFilters[26], 1, &g_pBlob[27]);
+    /*pred_cls[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[31], &g_pFilters[32], 0, &g_pBlob[16]);
+    /*pred_reg[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[37], &g_pFilters[38], 0, &g_pBlob[13]);
+    /*pred_kps[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[49], &g_pFilters[50], 0, &g_pBlob[19]);
+    /*pred_obj[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[43], &g_pFilters[44], 0, &g_pBlob[22]);
     TIME_END("branch4");
 
     /*****************add4*********************/
     TIME_START;
-    CDataBlob fb_up1;
-    g_pBlob[28] = &fb_up1;
-    upsampleX2(&fb_add6, &fb_up1);
-    CDataBlob fb_add4;
-    g_pBlob[29] = &fb_add4;
-    /*fb1 = */elementAdd(&fb_up1, &fb1, &fb_add4);
+    upsampleX2(&g_pBlob[27], &g_pBlob[28]);
+    /*fb1 = */elementAdd(&g_pBlob[28], &g_pBlob[7], &g_pBlob[29]);
     TIME_END("add4");
 
     /***************branch3*********************/
     TIME_START;
-    CDataBlob fb_branch3;
-    g_pBlob[30] = &fb_branch3;
-    /*fb1 = */convolutionDP(&fb_add4, &g_pFilters[23], &g_pFilters[24], 1, &fb_branch3);
-    /*pred_cls[0] = */convolutionDP(&fb_branch3, &g_pFilters[29], &g_pFilters[30], 0, &pred_cls[0]);
-    /*pred_reg[0] = */convolutionDP(&fb_branch3, &g_pFilters[35], &g_pFilters[36], 0, &pred_reg[0]);
-    /*pred_kps[0] = */convolutionDP(&fb_branch3, &g_pFilters[47], &g_pFilters[48], 0, &pred_kps[0]);
-    /*pred_obj[0] = */convolutionDP(&fb_branch3, &g_pFilters[41], &g_pFilters[42], 0, &pred_obj[0]);
+    /*fb1 = */convolutionDP(&g_pBlob[29], &g_pFilters[23], &g_pFilters[24], 1, &g_pBlob[30]);
+    /*pred_cls[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[29], &g_pFilters[30], 0, &g_pBlob[15]);
+    /*pred_reg[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[35], &g_pFilters[36], 0, &g_pBlob[12]);
+    /*pred_kps[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[47], &g_pFilters[48], 0, &g_pBlob[18]);
+    /*pred_obj[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[41], &g_pFilters[42], 0, &g_pBlob[21]);
     TIME_END("branch3");
 
     /***************PRIORBOX*********************/
     TIME_START;
-    CDataBlob prior3, prior4, prior5;
-    g_pBlob[31] = &prior3;
-    g_pBlob[32] = &prior4;
-    g_pBlob[33] = &prior5;
-    /*auto prior3 = */meshgrid(fb_branch3.cols, fb_branch3.rows, 8, 0.0f, &prior3);
-    /*auto prior4 = */meshgrid(fb_add6.cols, fb_add6.rows, 16, 0.0f,  &prior4);
-    /*auto prior5 = */meshgrid(fb3_3.cols, fb3_3.rows, 32, 0.0f, &prior5);
+    /*auto prior3 = */meshgrid(g_pBlob[30].cols, g_pBlob[30].rows, 8, 0.0f, &g_pBlob[31]);
+    /*auto prior4 = */meshgrid(g_pBlob[27].cols, g_pBlob[27].rows, 16, 0.0f,  &g_pBlob[32]);
+    /*auto prior5 = */meshgrid(g_pBlob[24].cols, g_pBlob[24].rows, 32, 0.0f, &g_pBlob[33]);
     TIME_END("prior");
     /***************PRIORBOX*********************/
 
     TIME_START;
-    bbox_decode(&pred_reg[0], &prior3, 8);
-    bbox_decode(&pred_reg[1], &prior4, 16);
-    bbox_decode(&pred_reg[2], &prior5, 32);
+    bbox_decode(&g_pBlob[12], &g_pBlob[31], 8);
+    bbox_decode(&g_pBlob[13], &g_pBlob[32], 16);
+    bbox_decode(&g_pBlob[14], &g_pBlob[33], 32);
 
-    kps_decode(&pred_kps[0], &prior3, 8);
-    kps_decode(&pred_kps[1], &prior4, 16);
-    kps_decode(&pred_kps[2], &prior5, 32);
+    kps_decode(&g_pBlob[18], &g_pBlob[31], 8);
+    kps_decode(&g_pBlob[19], &g_pBlob[32], 16);
+    kps_decode(&g_pBlob[20], &g_pBlob[33], 32);
 
-    CDataBlob pred_cls_0, pred_cls_1, pred_cls_2, cls;
-    g_pBlob[34] = &pred_cls_0;
-    g_pBlob[35] = &pred_cls_1;
-    g_pBlob[36] = &pred_cls_2;
-    blob2vector(&pred_cls[0], &pred_cls_0);
-    blob2vector(&pred_cls[1], &pred_cls_1);
-    blob2vector(&pred_cls[2], &pred_cls_2);
-    /*auto cls = */concat3(&pred_cls_0, &pred_cls_1, &pred_cls_2, &cls);
+    blob2vector(&g_pBlob[15], &g_pBlob[34]);
+    blob2vector(&g_pBlob[16], &g_pBlob[35]);
+    blob2vector(&g_pBlob[17], &g_pBlob[36]);
+    /*auto cls = */concat3(&g_pBlob[34], &g_pBlob[35], &g_pBlob[36], &g_pBlob[46]);
 
-    CDataBlob pred_reg_0, pred_reg_1, pred_reg_2, reg;
-    g_pBlob[37] = &pred_reg_0;
-    g_pBlob[38] = &pred_reg_1;
-    g_pBlob[39] = &pred_reg_2;
-    blob2vector(&pred_reg[0], &pred_reg_0);
-    blob2vector(&pred_reg[1], &pred_reg_1);
-    blob2vector(&pred_reg[2], &pred_reg_2);
-    /*auto reg = */concat3(&pred_reg_0, &pred_reg_1, &pred_reg_2, &reg);
+    blob2vector(&g_pBlob[12], &g_pBlob[37]);
+    blob2vector(&g_pBlob[13], &g_pBlob[38]);
+    blob2vector(&g_pBlob[14], &g_pBlob[39]);
+    /*auto reg = */concat3(&g_pBlob[37], &g_pBlob[38], &g_pBlob[39], &g_pBlob[47]);
 
-    CDataBlob pred_kps_0, pred_kps_1, pred_kps_2, kps;
-    g_pBlob[40] = &pred_kps_0;
-    g_pBlob[41] = &pred_kps_1;
-    g_pBlob[42] = &pred_kps_2;
-    blob2vector(&pred_kps[0], &pred_kps_0);
-    blob2vector(&pred_kps[1], &pred_kps_1);
-    blob2vector(&pred_kps[2], &pred_kps_2);
-    /*auto kps = */concat3(&pred_kps_0, &pred_kps_1, &pred_kps_2, &kps);
+    blob2vector(&g_pBlob[18], &g_pBlob[40]);
+    blob2vector(&g_pBlob[19], &g_pBlob[41]);
+    blob2vector(&g_pBlob[20], &g_pBlob[42]);
+    /*auto kps = */concat3(&g_pBlob[40], &g_pBlob[41], &g_pBlob[42], &g_pBlob[48]);
 
-    CDataBlob pred_obj_0, pred_obj_1, pred_obj_2, obj;
-    g_pBlob[43] = &pred_obj_0;
-    g_pBlob[44] = &pred_obj_1;
-    g_pBlob[45] = &pred_obj_2;
-    blob2vector(&pred_obj[0], &pred_obj_0);
-    blob2vector(&pred_obj[1], &pred_obj_1);
-    blob2vector(&pred_obj[2], &pred_obj_2);
-    /*auto obj = */concat3(&pred_obj_0, &pred_obj_1, &pred_obj_2, &obj);
+    blob2vector(&g_pBlob[21], &g_pBlob[43]);
+    blob2vector(&g_pBlob[22], &g_pBlob[44]);
+    blob2vector(&g_pBlob[23], &g_pBlob[45]);
+    /*auto obj = */concat3(&g_pBlob[43], &g_pBlob[44], &g_pBlob[45], &g_pBlob[49]);
 
-    sigmoid(&cls);
-    sigmoid(&obj);
+    sigmoid(&g_pBlob[46]); // cls
+    sigmoid(&g_pBlob[49]); // obj
     TIME_END("decode")
 
-    g_pBlob[46] = &cls;
-    g_pBlob[47] = &reg;
-    g_pBlob[48] = &kps;
-    g_pBlob[49] = &obj;
     TIME_START;
-    /*std::vector<FaceRect> facesInfo = */detection_output(&cls, &reg, &kps, &obj, 0.45f, 0.5f, 1000, 512,
-                                                           faceRects, num_faces);
+    /*std::vector<FaceRect> facesInfo = */detection_output(&g_pBlob[46], &g_pBlob[47], &g_pBlob[48], &g_pBlob[49], 0.45f, 0.5f, 1000, 512,
+                                                           face_blob, num_faces);
     TIME_END("detection output")
-    deinit_blob();
 }
 
 int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x9000 Bytes!!
@@ -335,11 +270,9 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
     result_buffer[2] = 0;
     result_buffer[3] = 0;
 
-    FaceRect* faces;
     int num_faces = 0;
-    /*std::vector<FaceRect> faces = */objectdetect_cnn(rgb_image_data, width, height, step, thresh, &faces, &num_faces);
-
-//    int num_faces =(int)faces.size();
+    objectdetect_cnn(rgb_image_data, width, height, step, thresh, &g_pBlob[0], &num_faces);
+    FaceRect* faces = (FaceRect*)(g_pBlob[0].data);
     num_faces = MIN(num_faces, 1024); //1024 = 0x9000 / (16 * 2 + 4)
 
     int * pCount = (int *)result_buffer;
@@ -360,7 +293,5 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
             p[5 + lmidx] = (short)faces[i].lm[lmidx];
         }
     }
-    myFree(&faces);
-//    deinit_parameters();
     return pCount;
 }

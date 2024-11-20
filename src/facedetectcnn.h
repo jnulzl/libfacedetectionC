@@ -48,10 +48,12 @@ the use of this software, even if advised of the possibility of such damage.
 extern "C" {
 #endif
 
+FACEDETECTION_EXPORT void init_facedetect_resources();
+
 FACEDETECTION_EXPORT int * facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x20000 Bytes!!
                     unsigned char * rgb_image_data, int width, int height, int step, float thresh); //input image, it must be BGR (three channels) insteed of RGB image!
 
-FACEDETECTION_EXPORT void release_resources();
+FACEDETECTION_EXPORT void release_facedetect_resources();
 
 #ifdef __cplusplus
 } /* extern "C" */
@@ -101,7 +103,7 @@ DO NOT EDIT the following code if you don't really understand it.
 
 void* myAlloc(size_t size);
 void myFree_(void* ptr);
-#define myFree(ptr) (myFree_(*(ptr)), *(ptr)=0);
+#define myFree(ptr) (myFree_(*(ptr)), *(ptr)=0)
 
 #ifndef MIN
 #  define MIN(a,b)  ((a) > (b) ? (b) : (a))
@@ -143,7 +145,7 @@ typedef struct CDataBlob_ {
 }CDataBlob;
 
 void CDataBlob_create(CDataBlob* blob, int r, int c, int ch);
-void CDataBlob_setNULL(CDataBlob* blob);
+void CDataBlob_release(CDataBlob* blob); // CDataBlob_setNULL
 void CDataBlob_setZero(CDataBlob* blob);
 int CDataBlob_isEmpty(const CDataBlob* blob);
 float* CDataBlob_ptr(const CDataBlob* blob, int r, int c);
@@ -162,26 +164,16 @@ typedef struct Filters_ {
 void Filters_create(Filters* filters, const ConvInfoStruct* convinfo);
 void Filters_release(Filters* filters);
 
-void objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, float thresh,
-                      FaceRect** faceRects, int* num_faces);
-
-//CDataBlob<float> setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor=32);
 void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor,
                                           CDataBlob* outBlob);
 
-//CDataBlob<float> convolution(const CDataBlob* inputData, const Filters* filters, int do_relu = true);
 void convolution(const CDataBlob* inputData, const Filters* filters, int do_relu,
                 CDataBlob* outBlob);
 
-//CDataBlob<float> convolutionDP(const CDataBlob* inputData,
-//                const Filters* filtersP, const Filters* filtersD, int do_relu = true);
 void convolutionDP(const CDataBlob* inputData,
                 const Filters* filtersP, const Filters* filtersD, int do_relu,
                 CDataBlob* outBlob);
 
-//CDataBlob<float> convolution4layerUnit(const CDataBlob* inputData,
-//                const Filters* filtersP1, const Filters* filtersD1,
-//                const Filters* filtersP2, const Filters* filtersD2, int do_relu = true);
 void convolution4layerUnit(const CDataBlob* inputData,
                 const Filters* filtersP1, const Filters* filtersD1,
                 const Filters* filtersP2, const Filters* filtersD2, int do_relu,
@@ -190,15 +182,12 @@ void convolution4layerUnit(const CDataBlob* inputData,
 void maxpooling2x2S2(const CDataBlob* inputData,
                     CDataBlob* outBlob);
 
-//CDataBlob<float> elementAdd(const CDataBlob* inputData1, const CDataBlob* inputData2);
 void elementAdd(const CDataBlob* inputData1, const CDataBlob* inputData2,
                 CDataBlob* outBlob);
 
-//CDataBlob<float> upsampleX2(const CDataBlob* inputData);
 void upsampleX2(const CDataBlob* inputData,
                 CDataBlob* outBlob);
 
-//CDataBlob<float> meshgrid(int feature_width, int feature_height, int stride, float offset=0.0f);
 void meshgrid(int feature_width, int feature_height, int stride, float offset,
             CDataBlob* outBlob);
 
@@ -220,4 +209,9 @@ void detection_output(const CDataBlob* cls,
                 const CDataBlob* kps,
                 const CDataBlob* obj,
                 float overlap_threshold, float confidence_threshold, int top_k, int keep_top_k,
-                FaceRect** face_rects, int* num_faces);
+                CDataBlob* face_blob, int* num_faces);
+
+void objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, float thresh,
+                      CDataBlob* face_blob, int* num_faces);
+
+void deinit_middle_blobs();
