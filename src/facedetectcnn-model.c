@@ -125,48 +125,48 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
     TIME_END("conv_head");
 
     TIME_START;
-    /*fx = */convolutionDP(&g_pBlob[1], &g_pFilters[1], &g_pFilters[2], 1, &g_pBlob[2]);
+    /*fx = */convolutionDP(&g_pBlob[1], &g_pFilters[1], &g_pFilters[2], 1, &g_pBlob[0]);
     TIME_END("conv0");
 
     TIME_START;
-    /*fx = */maxpooling2x2S2(&g_pBlob[2], &g_pBlob[3]);
+    /*fx = */maxpooling2x2S2(&g_pBlob[0], &g_pBlob[1]);
     TIME_END("pool0");
 
     /***************CONV1*********************/
     TIME_START;
-    /*fx = */convolution4layerUnit(&g_pBlob[3], &g_pFilters[3], &g_pFilters[4], &g_pFilters[5], &g_pFilters[6], 1, &g_pBlob[4]);
+    /*fx = */convolution4layerUnit(&g_pBlob[1], &g_pFilters[3], &g_pFilters[4], &g_pFilters[5], &g_pFilters[6], 1, &g_pBlob[0]);
     TIME_END("conv1");
 
     /***************CONV2*********************/
     TIME_START;
-    /*fx = */convolution4layerUnit(&g_pBlob[4], &g_pFilters[7], &g_pFilters[8], &g_pFilters[9], &g_pFilters[10], 1, &g_pBlob[5]);
+    /*fx = */convolution4layerUnit(&g_pBlob[0], &g_pFilters[7], &g_pFilters[8], &g_pFilters[9], &g_pFilters[10], 1, &g_pBlob[1]);
     TIME_END("conv2");
 
     /***************CONV3*********************/
     TIME_START;
-    /*fx = */maxpooling2x2S2(&g_pBlob[5], &g_pBlob[6]);
+    /*fx = */maxpooling2x2S2(&g_pBlob[1], &g_pBlob[0]);
     TIME_END("pool3");
 
     TIME_START;
-    /*auto fb1 = */convolution4layerUnit(&g_pBlob[6], &g_pFilters[11], &g_pFilters[12], &g_pFilters[13], &g_pFilters[14], 1, &g_pBlob[7]);
+    /*auto fb1 = */convolution4layerUnit(&g_pBlob[0], &g_pFilters[11], &g_pFilters[12], &g_pFilters[13], &g_pFilters[14], 1, &g_pBlob[1]);
     TIME_END("conv3");
 
     /***************CONV4*********************/
     TIME_START;
-    /*fx = */maxpooling2x2S2(&g_pBlob[7], &g_pBlob[8]);
+    /*fx = */maxpooling2x2S2(&g_pBlob[1], &g_pBlob[0]);
     TIME_END("pool4");
 
     TIME_START;
-    /*auto fb2 = */convolution4layerUnit(&g_pBlob[8], &g_pFilters[15], &g_pFilters[16], &g_pFilters[17], &g_pFilters[18], 1, &g_pBlob[9]);
+    /*auto fb2 = */convolution4layerUnit(&g_pBlob[0], &g_pFilters[15], &g_pFilters[16], &g_pFilters[17], &g_pFilters[18], 1, &g_pBlob[9]);
     TIME_END("conv4");
 
     /***************CONV5*********************/
     TIME_START;
-    /* fx = */maxpooling2x2S2(&g_pBlob[9], &g_pBlob[10]);
+    /* fx = */maxpooling2x2S2(&g_pBlob[9], &g_pBlob[0]);
     TIME_END("pool5");
 
     TIME_START;
-    /*auto fb3 = */convolution4layerUnit(&g_pBlob[10], &g_pFilters[19], &g_pFilters[20], &g_pFilters[21], &g_pFilters[22], 1, &g_pBlob[11]);
+    /*auto fb3 = */convolution4layerUnit(&g_pBlob[0], &g_pFilters[19], &g_pFilters[20], &g_pFilters[21], &g_pFilters[22], 1, &g_pBlob[11]);
     TIME_END("conv5");
 
     /***************branch5*********************/
@@ -196,7 +196,7 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
     /*****************add4*********************/
     TIME_START;
     upsampleX2(&g_pBlob[27], &g_pBlob[28]);
-    /*fb1 = */elementAdd(&g_pBlob[28], &g_pBlob[7], &g_pBlob[29]);
+    /*fb1 = */elementAdd(&g_pBlob[28], &g_pBlob[1], &g_pBlob[29]);
     TIME_END("add4");
 
     /***************branch3*********************/

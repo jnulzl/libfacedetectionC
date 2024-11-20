@@ -225,7 +225,7 @@ void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int im
                                           CDataBlob* outBlob)
 {
     if (imgChannels != 3) {
-        fprintf(stderr, "%s : The input image must be a 3-channel RGB image.\n", __FUNCTION__);
+        fprintf(stderr, "%s : The input image must be a 3-channel BGR image.\n", __FUNCTION__);
         exit(1);
     }
     if (padDivisor != 32) {
@@ -691,8 +691,6 @@ static CDataBlob __g_blob_in_convolutionDP__ = {0, 0, 0, 0, 0, 0, NULL, NULL};
 void convolutionDP(const CDataBlob* inputData, const Filters* filtersP, const Filters* filtersD, int do_relu,
                    CDataBlob* outputData)
 {
-
-//    printf("00000000000000 : %p, %d\n", tmp.data, tmp.totalCapacity);
     convolution(inputData, filtersP, 0, &__g_blob_in_convolutionDP__);
     convolution(&__g_blob_in_convolutionDP__, filtersD, do_relu, outputData);
 }
