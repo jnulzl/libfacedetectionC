@@ -112,11 +112,11 @@ void release_facedetect_resources()
     deinit_blob();
     deinit_middle_blobs();
 }
-void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height, int step, float thresh,
+void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height, int step, int is_rgb, float thresh,
                      CDataBlob* face_blob , int* num_faces)
 {
     TIME_START;
-    /*auto fx = */setDataFrom3x3S2P1to1x1S1P0FromImage(rgbImageData, width, height, 3, step, 32, &g_pBlob[0]);
+    /*auto fx = */setDataFrom3x3S2P1to1x1S1P0FromImage(rgbImageData, width, height, 3, step, is_rgb, 32, &g_pBlob[0]);
     TIME_END("convert data");
 
     /***************CONV0*********************/
@@ -256,7 +256,7 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
 }
 
 int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x9000 Bytes!!
-    unsigned char * rgb_image_data, int width, int height, int step, float thresh) //input image, it must be BGR (three-channel) image!
+    unsigned char * rgb_image_data, int width, int height, int step, int is_rgb, float thresh) //input image, it must be BGR (three-channel) image!
 {
 
     if (!result_buffer)
@@ -271,7 +271,7 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
     result_buffer[3] = 0;
 
     int num_faces = 0;
-    objectdetect_cnn(rgb_image_data, width, height, step, thresh, &g_pBlob[0], &num_faces);
+    objectdetect_cnn(rgb_image_data, width, height, step, is_rgb, thresh, &g_pBlob[0], &num_faces);
     FaceRect* faces = (FaceRect*)(g_pBlob[0].data);
     num_faces = MIN(num_faces, 1024); //1024 = 0x9000 / (16 * 2 + 4)
 

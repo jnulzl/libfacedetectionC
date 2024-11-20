@@ -40,18 +40,14 @@ the use of this software, even if advised of the possibility of such damage.
 
 #include "facedetection_export.h"
 
-//#define _ENABLE_AVX512 //Please enable it if X64 CPU
-//#define _ENABLE_AVX2 //Please enable it if X64 CPU
-//#define _ENABLE_NEON //Please enable it if ARM CPU
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 FACEDETECTION_EXPORT void init_facedetect_resources();
 
-FACEDETECTION_EXPORT int * facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x20000 Bytes!!
-                    unsigned char * rgb_image_data, int width, int height, int step, float thresh); //input image, it must be BGR (three channels) insteed of RGB image!
+FACEDETECTION_EXPORT int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x20000 Bytes!!
+                    unsigned char * rgb_image_data, int width, int height, int step, int is_rgb, float thresh); //input image, it must be BGR (three channels) insteed of RGB image!
 
 FACEDETECTION_EXPORT void release_facedetect_resources();
 
@@ -164,7 +160,7 @@ typedef struct Filters_ {
 void Filters_create(Filters* filters, const ConvInfoStruct* convinfo);
 void Filters_release(Filters* filters);
 
-void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor,
+void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int is_rgb, int padDivisor,
                                           CDataBlob* outBlob);
 
 void convolution(const CDataBlob* inputData, const Filters* filters, int do_relu,
@@ -211,7 +207,7 @@ void detection_output(const CDataBlob* cls,
                 float overlap_threshold, float confidence_threshold, int top_k, int keep_top_k,
                 CDataBlob* face_blob, int* num_faces);
 
-void objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, float thresh,
+void objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, int is_rgb, float thresh,
                       CDataBlob* face_blob, int* num_faces);
 
 void deinit_middle_blobs();

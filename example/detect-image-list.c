@@ -37,14 +37,28 @@ the use of this software, even if advised of the possibility of such damage.
 */
 
 #include <stdio.h>
-#include <opencv2/opencv.hpp>
+#include <stdlib.h>
+
 #include "facedetectcnn.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#if __GNUC__
+#include <sys/time.h>
+long get_current_time()
+{
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
+    return start.tv_sec * 1000  + start.tv_usec / 1000; // ms
+}
+#endif
+
 
 //define the buffer size. Do not change the size!
 //0x9000 = 1024 * (16 * 2 + 4), detect 1024 face at most
 #define DETECT_BUFFER_SIZE 0x9000
-using namespace cv;
-using namespace std;
+
 
 int main(int argc, char* argv[])
 {
@@ -66,62 +80,74 @@ int main(int argc, char* argv[])
     float thresh = atof(argv[2]);
     init_facedetect_resources();
 
-	//load an image and convert it to gray (single-channel)
-	Mat image = imread(argv[1]); 
-	if(image.empty())
-	{
-		fprintf(stderr, "Can not load the image file %s.\n", argv[1]);
-		return -1;
-	}
+    int sleep_time = 0;
+     //read any text file from currect directory
+    FILE* file = fopen(argv[1], "r");
+    if(!file)
+    {
+        fprintf(stderr, "%s :  Unable to open : %s ", __FUNCTION__ , argv[1]);
+        return -1;
+    }
+    char* img_path = NULL;
+    size_t len = 0;
+    ssize_t read;
+    while ((read = getline(&img_path, &len, file)) != -1)
+    {
+        if (img_path[read - 1] == '\n')
+        {
+            img_path[read - 1] = '\0';
+        }
+        printf("Detecting image %s ", img_path);
+        //Load an image from the disk.
+        int img_width = 0;
+        int img_height = 0;
+        int img_channels = 0;
+        unsigned char* img_color = stbi_load(img_path, &img_width, &img_height, &img_channels, 3);
+        if(!img_color)
+        {
+            fprintf(stderr, "Can not load the image file %s.\n", img_path);
+            break;
+        }
 
-	///////////////////////////////////////////
-	// CNN face detection 
-	// Best detection rate
-	//////////////////////////////////////////
-	//!!! The input image must be a BGR one (three-channel) instead of RGB
-	//!!! DO NOT RELEASE pResults !!!
-    TickMeter cvtm;
-    cvtm.start();
+        printf("width : %d, height : %d\n", img_width, img_height);
 
-	pResults = facedetect_cnn(pBuffer, (unsigned char*)(image.ptr(0)), image.cols, image.rows, (int)image.step, thresh);
-    
-    cvtm.stop();    
-    printf("time = %gms\n", cvtm.getTimeMilli());
-    
-    printf("%d faces detected.\n", (pResults ? *pResults : 0));
-	Mat result_image = image.clone();
-	//print the detection results
-	for(int i = 0; i < (pResults ? *pResults : 0); i++)
-	{
-        short * p = ((short*)(pResults + 1)) + 16*i;
-		int confidence = p[0];
-		int x = p[1];
-		int y = p[2];
-		int w = p[3];
-		int h = p[4];
-        
-        //show the score of the face. Its range is [0-100]
-        char sScore[256];
-        snprintf(sScore, 256, "%d", confidence);
-        cv::putText(result_image, sScore, cv::Point(x, y-3), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1);
-        //draw face rectangle
-		rectangle(result_image, Rect(x, y, w, h), Scalar(0, 255, 0), 2);
-        //draw five face landmarks in different colors
-        cv::circle(result_image, cv::Point(p[5], p[5 + 1]), 1, cv::Scalar(255, 0, 0), 2);
-        cv::circle(result_image, cv::Point(p[5 + 2], p[5 + 3]), 1, cv::Scalar(0, 0, 255), 2);
-        cv::circle(result_image, cv::Point(p[5 + 4], p[5 + 5]), 1, cv::Scalar(0, 255, 0), 2);
-        cv::circle(result_image, cv::Point(p[5 + 6], p[5 + 7]), 1, cv::Scalar(255, 0, 255), 2);
-        cv::circle(result_image, cv::Point(p[5 + 8], p[5 + 9]), 1, cv::Scalar(0, 255, 255), 2);
-        
-        //print the result
-        printf("face %d: confidence=%d, [%d, %d, %d, %d] (%d,%d) (%d,%d) (%d,%d) (%d,%d) (%d,%d)\n", 
-                i, confidence, x, y, w, h, 
-                p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13],p[14]);
+        ///////////////////////////////////////////
+        // CNN face detection
+        // Best detection rate
+        //////////////////////////////////////////
+        //!!! The input image must be a BGR one (three-channel) instead of RGB
+        //!!! DO NOT RELEASE pResults !!!
+#if __GNUC__
+        long start_time = get_current_time();
+#endif
+        int is_rgb = 1; // The image format from stbi_load is RGB
+        pResults = facedetect_cnn(pBuffer, img_color, img_width, img_height, img_width * 3, is_rgb, thresh);
+#if __GNUC__
+        printf("Time : %ld ms\n", get_current_time() - start_time);
+#endif
+        printf("%d faces detected.\n", (pResults ? *pResults : 0));
+        //print the detection results
+        for(int i = 0; i < (pResults ? *pResults : 0); i++)
+        {
+            short * p = ((short*)(pResults + 1)) + 16*i;
+            int confidence = p[0];
+            int x = p[1];
+            int y = p[2];
+            int w = p[3];
+            int h = p[4];
+            //print the result
+            printf("face %d: confidence=%d, [%d, %d, %d, %d] (%d,%d) (%d,%d) (%d,%d) (%d,%d) (%d,%d)\n",
+                    i, confidence, x, y, w, h,
+                    p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13],p[14]);
 
-	}
-	imshow("result", result_image);
+        }
+        stbi_image_free(img_color);
+    }
+    // Free the allocated memory for the line
+    free(img_path);
 
-	waitKey();
+    // Close the file
+    fclose(file);
 
     //release the buffer
     free(pBuffer);

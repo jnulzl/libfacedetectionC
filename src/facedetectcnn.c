@@ -221,7 +221,7 @@ void Filters_release(Filters* filters)
     CDataBlob_release(&filters->biases);
 }
 
-void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor,
+void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int is_rgb, int padDivisor,
                                           CDataBlob* outBlob)
 {
     if (imgChannels != 3) {
@@ -237,32 +237,66 @@ void setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int im
     int channels = 32;
     CDataBlob_create(outBlob, rows, cols, channels);
 
-#if defined(_OPENMP)
-#pragma omp parallel for
-#endif
-    for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {;
-            float* pData = CDataBlob_ptr(outBlob, r, c);
-            for (int fy = -1; fy <= 1; fy++) {
-                int srcy = r * 2 + fy;
-                
-                if (srcy < 0 || srcy >= imgHeight) //out of the range of the image
-                    continue;
+    if(0 != is_rgb)
+    {
+        #if defined(_OPENMP)
+        #pragma omp parallel for
+        #endif
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {;
+                float* pData = CDataBlob_ptr(outBlob, r, c);
+                for (int fy = -1; fy <= 1; fy++) {
+                    int srcy = r * 2 + fy;
 
-                for (int fx = -1; fx <= 1; fx++) {
-                    int srcx = c * 2 + fx;
-
-                    if (srcx < 0 || srcx >= imgWidth) //out of the range of the image
+                    if (srcy < 0 || srcy >= imgHeight) //out of the range of the image
                         continue;
 
-                    const unsigned char * pImgData = inputData + imgWidthStep * srcy + imgChannels * srcx;
+                    for (int fx = -1; fx <= 1; fx++) {
+                        int srcx = c * 2 + fx;
 
-                    int output_channel_offset = ((fy + 1) * 3 + fx + 1) ; //3x3 filters, 3-channel image
-                    pData[output_channel_offset * imgChannels] = pImgData[0];
-                    pData[output_channel_offset * imgChannels + 1] = pImgData[1];
-                    pData[output_channel_offset * imgChannels + 2] = pImgData[2];
+                        if (srcx < 0 || srcx >= imgWidth) //out of the range of the image
+                            continue;
+
+                        const unsigned char * pImgData = inputData + imgWidthStep * srcy + imgChannels * srcx;
+
+                        int output_channel_offset = ((fy + 1) * 3 + fx + 1) ; //3x3 filters, 3-channel image
+                        pData[output_channel_offset * imgChannels] = pImgData[2];
+                        pData[output_channel_offset * imgChannels + 1] = pImgData[1];
+                        pData[output_channel_offset * imgChannels + 2] = pImgData[0];
+                    }
                 }
-            }                    
+            }
+        }
+    }
+    else
+    {
+        #if defined(_OPENMP)
+        #pragma omp parallel for
+        #endif
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {;
+                float* pData = CDataBlob_ptr(outBlob, r, c);
+                for (int fy = -1; fy <= 1; fy++) {
+                    int srcy = r * 2 + fy;
+
+                    if (srcy < 0 || srcy >= imgHeight) //out of the range of the image
+                        continue;
+
+                    for (int fx = -1; fx <= 1; fx++) {
+                        int srcx = c * 2 + fx;
+
+                        if (srcx < 0 || srcx >= imgWidth) //out of the range of the image
+                            continue;
+
+                        const unsigned char * pImgData = inputData + imgWidthStep * srcy + imgChannels * srcx;
+
+                        int output_channel_offset = ((fy + 1) * 3 + fx + 1) ; //3x3 filters, 3-channel image
+                        pData[output_channel_offset * imgChannels] = pImgData[0];
+                        pData[output_channel_offset * imgChannels + 1] = pImgData[1];
+                        pData[output_channel_offset * imgChannels + 2] = pImgData[2];
+                    }
+                }
+            }
         }
     }
 }
@@ -717,7 +751,7 @@ void maxpooling2x2S2(const CDataBlob* inputData,
             float * pIn = inputData->data;
 
 #if defined(_ENABLE_NEON)
-            for (int ch = 0; ch < outputData.channels; ch += 4)
+            for (int ch = 0; ch < outputData->channels; ch += 4)
             {
                 float32x4_t tmp;
                 float32x4_t maxVal = vld1q_f32(pIn + ch + inputMatOffsetsInElement[0]);
