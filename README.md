@@ -1,5 +1,9 @@
 # libfacedetection pure c code inference
 
+## TODO
+
+- further optimized memory reuse when needed. [memory reuse main idea](images/mem_reuse_main_idea.png)
+
 ## Depend
 
 - Any OS
