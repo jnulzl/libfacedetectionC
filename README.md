@@ -1,5 +1,8 @@
 # libfacedetection pure c code inference
 
+
+*Based [libfacedetection.train.yunet_s](https://github.com/ShiqiYu/libfacedetection.train/tree/0047ac24afb1a50a0c6105001c89d1b5b805dbf1).*
+
 ## TODO
 
 - further optimized memory reuse when needed. [memory reuse main idea](images/mem_reuse_main_idea.png)
