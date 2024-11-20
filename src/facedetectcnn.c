@@ -554,9 +554,9 @@ float JaccardOverlap(const NormalizedBBox* bbox1, const NormalizedBBox* bbox2)
 int SortScoreBBoxPairDescend(const void* pair1,   const void* pair2)
 {
     const NormalizedBBox* arg1 = (const NormalizedBBox*)pair1;
-    const NormalizedBBox* arg2 = (const NormalizedBBox*)pair1;
+    const NormalizedBBox* arg2 = (const NormalizedBBox*)pair2;
 
-    return (arg1->score > arg2->score) ? 1 : -1;
+    return (arg1->score > arg2->score) ? -1 : 1;
 }
 
 
