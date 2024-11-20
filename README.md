@@ -1,3 +1,58 @@
+# libfacedetection pure c code inference
+
+## Depend
+
+- Any OS
+
+- C language compiler supporting C99
+
+## Build
+
+- Native C
+
+```
+>>mkdir -p build_native
+>>cd build_native
+#>>rm -rf CMakeCache.txt 
+>>cmake ../ -DCMAKE_BUILD_TYPE=Release #-DUSE_OPENMP=ON
+>>make VERBOSE=1 -j4
+>>./detect-image-list img_list.txt 0.5
+```
+
+- Enable avx2
+
+```
+>>mkdir -p build_avx2
+>>cd build_avx2
+#>>rm -rf CMakeCache.txt 
+>>cmake ../ -DCMAKE_BUILD_TYPE=Release -DENABLE_AVX2=ON #-DUSE_OPENMP=ON
+>>make VERBOSE=1 -j4
+>>./detect-image-list img_list.txt 0.5
+```
+
+- Enable avx512
+
+```
+>>mkdir -p build_avx512
+>>cd build_avx512
+#>>rm -rf CMakeCache.txt 
+>>cmake ../ -DCMAKE_BUILD_TYPE=Release  -DENABLE_AVX512=ON #-DUSE_OPENMP=ON
+>>make VERBOSE=1 -j4
+>>./detect-image-list img_list.txt 0.5
+```
+
+- Enable neon(only for arm platform, which supported neon )
+
+```
+>>mkdir -p build_neon
+>>cd build_neon
+#>>rm -rf CMakeCache.txt 
+>>cmake ../ -DCMAKE_BUILD_TYPE=Release  -DENABLE_NEON=ON  -DCMAKE_C_COMPILER=/usr/bin/aarch64-linux-gnu-gcc #-DUSE_OPENMP=ON
+>>make VERBOSE=1 -j4
+>>./detect-image-list img_list.txt 0.5
+```
+
+### ----------------------------------------------------------
 # libfacedetection
 
 This is an open source library for CNN-based face detection in images. The CNN model has been converted to static variables in C source files. The source code does not depend on any other libraries. What you need is just a C++ compiler. You can compile the source code under Windows, Linux, ARM and any platform with a C++ compiler.
