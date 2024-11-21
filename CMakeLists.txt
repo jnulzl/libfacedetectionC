@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(libfacedetection C)
+project(libfacedetectionC C)
 
 option(ENABLE_NEON "whether use neon, if use arm please set it on" OFF)
 option(ENABLE_AVX512 "use avx512" OFF)

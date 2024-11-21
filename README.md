@@ -5,9 +5,9 @@
 
 ## TODO
 
-- further optimized memory reuse when needed. [memory reuse main idea](images/mem_reuse_main_idea.png)
+- further optimizing memory reuse. [memory reuse main idea](images/mem_reuse_main_idea.png)
 
-## Depend
+## Softwares
 
 - Any OS
 
