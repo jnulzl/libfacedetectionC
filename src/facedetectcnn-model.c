@@ -110,7 +110,6 @@ void release_facedetect_resources()
 {
     deinit_parameters();
     deinit_blob();
-    deinit_middle_blobs();
 }
 void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height, int step, int is_rgb, float thresh,
                      CDataBlob* face_blob , int* num_faces)
@@ -306,6 +305,7 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
     CDataBlob_release(&g_pBlob[46]);
     CDataBlob_release(&g_pBlob[47]);
     CDataBlob_release(&g_pBlob[48]);
+    CDataBlob_release(&g_pBlob[49]);
 }
 
 int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing face detection results, !!its size must be 0x9000 Bytes!!
@@ -323,9 +323,10 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
     result_buffer[2] = 0;
     result_buffer[3] = 0;
 
+    CDataBlob face_blob = {0, 0, 0, 0, 0, 0, NULL, NULL};
     int num_faces = 0;
-    objectdetect_cnn(rgb_image_data, width, height, step, is_rgb, thresh, &g_pBlob[49], &num_faces);
-    FaceRect* faces = (FaceRect*)(g_pBlob[49].data);
+    objectdetect_cnn(rgb_image_data, width, height, step, is_rgb, thresh, &face_blob, &num_faces);
+    FaceRect* faces = (FaceRect*)(face_blob.data);
     num_faces = MIN(num_faces, 1024); //1024 = 0x9000 / (16 * 2 + 4)
 
     int * pCount = (int *)result_buffer;
@@ -346,5 +347,6 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
             p[5 + lmidx] = (short)faces[i].lm[lmidx];
         }
     }
+    CDataBlob_release(&face_blob);
     return pCount;
 }
