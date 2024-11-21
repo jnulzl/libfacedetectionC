@@ -299,7 +299,7 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
     TIME_END("decode")
 
     TIME_START;
-    detection_output(&g_pBlob[46], &g_pBlob[47], &g_pBlob[48], &g_pBlob[49], 0.45f, 0.5f, 1000, 512,
+    detection_output(&g_pBlob[46], &g_pBlob[47], &g_pBlob[48], &g_pBlob[49], 0.45f, thresh, 1000, 512,
                                                            face_blob, num_faces);
     TIME_END("detection output")
     CDataBlob_release(&g_pBlob[46]);
