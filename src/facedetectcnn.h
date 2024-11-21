@@ -209,5 +209,3 @@ void detection_output(const CDataBlob* cls,
 
 void objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step, int is_rgb, float thresh,
                       CDataBlob* face_blob, int* num_faces);
-
-void deinit_middle_blobs();

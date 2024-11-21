@@ -530,7 +530,7 @@ int convolution_3x3depthwise(const CDataBlob* inputData, const Filters* filters,
 
 int relu(CDataBlob* inputoutputData)
 {
-    if(1 == CDataBlob_isEmpty(inputoutputData))
+    if(CDataBlob_isEmpty(inputoutputData))
     {
         fprintf(stderr,"%s : The input data is empty.\n", __FUNCTION__);
         return 0;
@@ -617,7 +617,7 @@ int SortScoreBBoxPairDescend(const void* pair1,   const void* pair2)
 
 
 void upsampleX2(const CDataBlob* inputData, CDataBlob* outData) {
-    if (1 == CDataBlob_isEmpty((CDataBlob*)(inputData))) {
+    if (CDataBlob_isEmpty((CDataBlob*)(inputData))) {
         fprintf(stderr,"%s : The input data is empty.\n", __FUNCTION__);
         exit(1);
     }
@@ -657,7 +657,7 @@ void elementAdd(const CDataBlob* inputData1, const CDataBlob* inputData2,
 void convolution(const CDataBlob* inputData, const Filters* filters, int do_relu,
                  CDataBlob* outputData)
 {
-    if(1 == CDataBlob_isEmpty(inputData) || 1 == CDataBlob_isEmpty(&filters->weights) || 1 == CDataBlob_isEmpty(&filters->biases))
+    if(CDataBlob_isEmpty(inputData) || CDataBlob_isEmpty(&filters->weights) || CDataBlob_isEmpty(&filters->biases))
     {
         fprintf(stderr, "%s : The input data or filter data is empty\n", __FUNCTION__);
         exit(1);
@@ -687,31 +687,31 @@ void convolution(const CDataBlob* inputData, const Filters* filters, int do_relu
         relu(outputData);
 }
 
-static CDataBlob __g_blob_in_convolutionDP__ = {0, 0, 0, 0, 0, 0, NULL, NULL};
 void convolutionDP(const CDataBlob* inputData, const Filters* filtersP, const Filters* filtersD, int do_relu,
                    CDataBlob* outputData)
 {
-
-//    printf("00000000000000 : %p, %d\n", tmp.data, tmp.totalCapacity);
-    convolution(inputData, filtersP, 0, &__g_blob_in_convolutionDP__);
-    convolution(&__g_blob_in_convolutionDP__, filtersD, do_relu, outputData);
+    CDataBlob tmp_blob_in_convolutionDP = {0, 0, 0, 0, 0, 0, NULL, NULL};
+    convolution(inputData, filtersP, 0, &tmp_blob_in_convolutionDP);
+    convolution(&tmp_blob_in_convolutionDP, filtersD, do_relu, outputData);
+    CDataBlob_release(&tmp_blob_in_convolutionDP);
 }
 
-static CDataBlob __g_blob_in_convolution4layerUnit__ = {0, 0, 0, 0, 0, 0, NULL, NULL};
 void convolution4layerUnit(const CDataBlob* inputData,
                 const Filters* filtersP1, const Filters* filtersD1,
                 const Filters* filtersP2, const Filters* filtersD2, int do_relu,
                 CDataBlob* outputData)
 {
-    convolutionDP(inputData, filtersP1, filtersD1, 1, &__g_blob_in_convolution4layerUnit__);
-    convolutionDP(&__g_blob_in_convolution4layerUnit__, filtersP2, filtersD2, do_relu, outputData);
+    CDataBlob tmp_blob_in_convolution4layerUnit = {0, 0, 0, 0, 0, 0, NULL, NULL};
+    convolutionDP(inputData, filtersP1, filtersD1, 1, &tmp_blob_in_convolution4layerUnit);
+    convolutionDP(&tmp_blob_in_convolution4layerUnit, filtersP2, filtersD2, do_relu, outputData);
+    CDataBlob_release(&tmp_blob_in_convolution4layerUnit);
 }
 
 //only 2X2 S2 is supported
 void maxpooling2x2S2(const CDataBlob* inputData,
                      CDataBlob* outputData)
 {
-    if (1 == CDataBlob_isEmpty(inputData))
+    if (CDataBlob_isEmpty(inputData))
     {
         fprintf(stderr,"%s : The input data is empty.\n", __FUNCTION__);
         exit(1);
@@ -867,7 +867,7 @@ void kps_decode(CDataBlob* kps_pred, const CDataBlob* priors, int stride) {
 void concat3(const CDataBlob* inputData1, const CDataBlob* inputData2, const CDataBlob* inputData3,
              CDataBlob* outputData)
 {
-    if ((1 == CDataBlob_isEmpty(inputData1)) || (1 == CDataBlob_isEmpty(inputData2)) || (1 == CDataBlob_isEmpty(inputData3)))
+    if ((CDataBlob_isEmpty(inputData1)) || (CDataBlob_isEmpty(inputData2)) || (CDataBlob_isEmpty(inputData3)))
     {
         fprintf(stderr, "%s : The input data is empty.\n", __FUNCTION__ );
         exit(1);
@@ -912,7 +912,7 @@ void concat3(const CDataBlob* inputData1, const CDataBlob* inputData2, const CDa
 void blob2vector(const CDataBlob* inputData,
                  CDataBlob* outputData)
 {
-    if (1 == CDataBlob_isEmpty(inputData))
+    if (CDataBlob_isEmpty(inputData))
     {
         fprintf(stderr, "%s : The input data is empty.\n", __FUNCTION__ );
         exit(1);
@@ -994,17 +994,10 @@ void detection_output(const CDataBlob* cls,
             valid_count++;
         }
     }
-    NormalizedBBox *score_bbox_vec = NULL;
+    CDataBlob score_bbox_vec_blob = {0, 0, 0, 0, 0, 0, NULL, NULL};
     size_t score_bbox_vec_alloc_size = valid_count * sizeof(NormalizedBBox);
-    if(__g_blob_in_convolutionDP__.totalCapacity < score_bbox_vec_alloc_size)
-    {
-        score_bbox_vec = (NormalizedBBox *) myAlloc(score_bbox_vec_alloc_size);
-    }
-    else
-    {
-        score_bbox_vec = (NormalizedBBox*)(__g_blob_in_convolutionDP__.data);
-    }
-
+    CDataBlob_create(&score_bbox_vec_blob, 1, 1, score_bbox_vec_alloc_size / sizeof(float));
+    NormalizedBBox *score_bbox_vec = (NormalizedBBox *)(score_bbox_vec_blob.data);
     valid_count = 0;
     //get the candidates those are > confidence_threshold
     for (int i = 0; i < cls->channels; ++i)
@@ -1038,16 +1031,10 @@ void detection_output(const CDataBlob* cls,
     }
 
     //Do NMS
-    NormalizedBBox *final_score_bbox_vec = NULL;
+    CDataBlob final_score_bbox_vec_blob = {0, 0, 0, 0, 0, 0, NULL, NULL};
     size_t final_score_bbox_vec_alloc_size = keep_top_k * sizeof(NormalizedBBox);
-    if(__g_blob_in_convolution4layerUnit__.totalCapacity < final_score_bbox_vec_alloc_size)
-    {
-        final_score_bbox_vec = (NormalizedBBox *) myAlloc(final_score_bbox_vec_alloc_size);
-    }
-    else
-    {
-        final_score_bbox_vec = (NormalizedBBox*)(__g_blob_in_convolution4layerUnit__.data);
-    }
+    CDataBlob_create(&final_score_bbox_vec_blob, 1, 1, final_score_bbox_vec_alloc_size / sizeof(float));
+    NormalizedBBox *final_score_bbox_vec = (NormalizedBBox *)(final_score_bbox_vec_blob.data);
     int final_count = 0;
     for (int idx = 0; idx < valid_count; idx++)
     {
@@ -1071,12 +1058,9 @@ void detection_output(const CDataBlob* cls,
         }
     }
 
-    FaceRect *face_rects = (FaceRect*)(face_blob->data);
     size_t face_rects_alloc_size = final_count * sizeof(FaceRect);
-    if(face_blob->totalCapacity < face_rects_alloc_size)
-    {
-        final_count = (int)(face_blob->totalCapacity / sizeof(FaceRect));
-    }
+    CDataBlob_create(face_blob, 1, 1, face_rects_alloc_size / sizeof(float));
+    FaceRect *face_rects = (FaceRect*)(face_blob->data);
     *num_faces = final_count;
     for (int fi = 0; fi < final_count; fi++)
     {
@@ -1095,18 +1079,8 @@ void detection_output(const CDataBlob* cls,
         }
         face_rects[fi] = r;
     }
-    if(__g_blob_in_convolutionDP__.totalCapacity < score_bbox_vec_alloc_size)
-    {
-        myFree(&score_bbox_vec);
-    }
-    if(__g_blob_in_convolution4layerUnit__.totalCapacity < final_score_bbox_vec_alloc_size)
-    {
-        myFree(&final_score_bbox_vec);
-    }
-}
 
-void deinit_middle_blobs()
-{
-    CDataBlob_release(&__g_blob_in_convolutionDP__);
-    CDataBlob_release(&__g_blob_in_convolution4layerUnit__);
+    //release tmp memory
+    CDataBlob_release(&score_bbox_vec_blob);
+    CDataBlob_release(&final_score_bbox_vec_blob);
 }
