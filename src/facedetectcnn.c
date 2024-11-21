@@ -1075,6 +1075,7 @@ void detection_output(const CDataBlob* cls,
 
     FaceRect *face_rects = (FaceRect*)(face_blob->data);
     size_t face_rects_alloc_size = final_count * sizeof(FaceRect);
+    printf("face_rects_alloc_size = %zu, face_blob->totalCapacity = %d\n", face_rects_alloc_size, face_blob->totalCapacity);
     if(face_blob->totalCapacity < face_rects_alloc_size)
     {
         final_count = (int)(face_blob->totalCapacity / sizeof(FaceRect));

@@ -171,67 +171,71 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
 
     /***************branch5*********************/
     TIME_START;
-    /*fb3 = */convolutionDP(&g_pBlob[11], &g_pFilters[27], &g_pFilters[28], 1, &g_pBlob[24]);
-    /*pred_cls[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[33], &g_pFilters[34], 0, &g_pBlob[17]);
-    /*pred_reg[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[39], &g_pFilters[40], 0, &g_pBlob[14]);
-    /*pred_kps[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[51], &g_pFilters[52], 0, &g_pBlob[20]);
-    /*pred_obj[2] = */convolutionDP(&g_pBlob[24], &g_pFilters[45], &g_pFilters[46], 0, &g_pBlob[23]);
+    /*fb3 = */convolutionDP(&g_pBlob[11], &g_pFilters[27], &g_pFilters[28], 1, &g_pBlob[0]);
+    /*pred_cls[2] = */convolutionDP(&g_pBlob[0], &g_pFilters[33], &g_pFilters[34], 0, &g_pBlob[11]);
+    /*pred_reg[2] = */convolutionDP(&g_pBlob[0], &g_pFilters[39], &g_pFilters[40], 0, &g_pBlob[14]);
+    /*pred_kps[2] = */convolutionDP(&g_pBlob[0], &g_pFilters[51], &g_pFilters[52], 0, &g_pBlob[20]);
+    /*pred_obj[2] = */convolutionDP(&g_pBlob[0], &g_pFilters[45], &g_pFilters[46], 0, &g_pBlob[23]);
     TIME_END("branch5");
 
     /*****************add5*********************/    
     TIME_START;
-    upsampleX2(&g_pBlob[24], &g_pBlob[25]);
+    upsampleX2(&g_pBlob[0], &g_pBlob[25]);
     /*fb2 = */elementAdd(&g_pBlob[25], &g_pBlob[9], &g_pBlob[26]);
     TIME_END("add5");
 
     /*****************add6*********************/    
     TIME_START;
-    /*fb2 = */convolutionDP(&g_pBlob[26], &g_pFilters[25], &g_pFilters[26], 1, &g_pBlob[27]);
-    /*pred_cls[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[31], &g_pFilters[32], 0, &g_pBlob[16]);
-    /*pred_reg[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[37], &g_pFilters[38], 0, &g_pBlob[13]);
-    /*pred_kps[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[49], &g_pFilters[50], 0, &g_pBlob[19]);
-    /*pred_obj[1] = */convolutionDP(&g_pBlob[27], &g_pFilters[43], &g_pFilters[44], 0, &g_pBlob[22]);
+    /*fb2 = */convolutionDP(&g_pBlob[26], &g_pFilters[25], &g_pFilters[26], 1, &g_pBlob[9]);
+    /*pred_cls[1] = */convolutionDP(&g_pBlob[9], &g_pFilters[31], &g_pFilters[32], 0, &g_pBlob[25]);
+    /*pred_reg[1] = */convolutionDP(&g_pBlob[9], &g_pFilters[37], &g_pFilters[38], 0, &g_pBlob[26]);
+    /*pred_kps[1] = */convolutionDP(&g_pBlob[9], &g_pFilters[49], &g_pFilters[50], 0, &g_pBlob[19]);
+    /*pred_obj[1] = */convolutionDP(&g_pBlob[9], &g_pFilters[43], &g_pFilters[44], 0, &g_pBlob[22]);
     TIME_END("branch4");
 
     /*****************add4*********************/
     TIME_START;
-    upsampleX2(&g_pBlob[27], &g_pBlob[28]);
+    upsampleX2(&g_pBlob[9], &g_pBlob[28]);
     /*fb1 = */elementAdd(&g_pBlob[28], &g_pBlob[1], &g_pBlob[29]);
     TIME_END("add4");
-
+    
     /***************branch3*********************/
     TIME_START;
-    /*fb1 = */convolutionDP(&g_pBlob[29], &g_pFilters[23], &g_pFilters[24], 1, &g_pBlob[30]);
-    /*pred_cls[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[29], &g_pFilters[30], 0, &g_pBlob[15]);
-    /*pred_reg[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[35], &g_pFilters[36], 0, &g_pBlob[12]);
-    /*pred_kps[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[47], &g_pFilters[48], 0, &g_pBlob[18]);
-    /*pred_obj[0] = */convolutionDP(&g_pBlob[30], &g_pFilters[41], &g_pFilters[42], 0, &g_pBlob[21]);
+    /*fb1 = */convolutionDP(&g_pBlob[29], &g_pFilters[23], &g_pFilters[24], 1, &g_pBlob[1]);
+    /*pred_cls[0] = */convolutionDP(&g_pBlob[1], &g_pFilters[29], &g_pFilters[30], 0, &g_pBlob[28]);
+    /*pred_reg[0] = */convolutionDP(&g_pBlob[1], &g_pFilters[35], &g_pFilters[36], 0, &g_pBlob[29]);
+    /*pred_kps[0] = */convolutionDP(&g_pBlob[1], &g_pFilters[47], &g_pFilters[48], 0, &g_pBlob[18]);
+    /*pred_obj[0] = */convolutionDP(&g_pBlob[1], &g_pFilters[41], &g_pFilters[42], 0, &g_pBlob[21]);
     TIME_END("branch3");
 
     /***************PRIORBOX*********************/
     TIME_START;
-    /*auto prior3 = */meshgrid(g_pBlob[30].cols, g_pBlob[30].rows, 8, 0.0f, &g_pBlob[31]);
-    /*auto prior4 = */meshgrid(g_pBlob[27].cols, g_pBlob[27].rows, 16, 0.0f,  &g_pBlob[32]);
-    /*auto prior5 = */meshgrid(g_pBlob[24].cols, g_pBlob[24].rows, 32, 0.0f, &g_pBlob[33]);
+    /*auto prior3 = */meshgrid(g_pBlob[1].cols, g_pBlob[1].rows, 8, 0.0f, &g_pBlob[31]);
+    /*auto prior4 = */meshgrid(g_pBlob[9].cols, g_pBlob[9].rows, 16, 0.0f,  &g_pBlob[32]);
+    /*auto prior5 = */meshgrid(g_pBlob[0].cols, g_pBlob[0].rows, 32, 0.0f, &g_pBlob[33]);
     TIME_END("prior");
     /***************PRIORBOX*********************/
-
+    // release some big memory blob every inference
+    for (int idx = 0; idx < 10; ++idx)
+    {
+        CDataBlob_release(&g_pBlob[idx]); // blob[0], blob[1], blob[9]
+    }
     TIME_START;
-    bbox_decode(&g_pBlob[12], &g_pBlob[31], 8);
-    bbox_decode(&g_pBlob[13], &g_pBlob[32], 16);
+    bbox_decode(&g_pBlob[29], &g_pBlob[31], 8);
+    bbox_decode(&g_pBlob[26], &g_pBlob[32], 16);
     bbox_decode(&g_pBlob[14], &g_pBlob[33], 32);
 
     kps_decode(&g_pBlob[18], &g_pBlob[31], 8);
     kps_decode(&g_pBlob[19], &g_pBlob[32], 16);
     kps_decode(&g_pBlob[20], &g_pBlob[33], 32);
 
-    blob2vector(&g_pBlob[15], &g_pBlob[34]);
-    blob2vector(&g_pBlob[16], &g_pBlob[35]);
-    blob2vector(&g_pBlob[17], &g_pBlob[36]);
+    blob2vector(&g_pBlob[28], &g_pBlob[34]);
+    blob2vector(&g_pBlob[25], &g_pBlob[35]);
+    blob2vector(&g_pBlob[11], &g_pBlob[36]);
     /*auto cls = */concat3(&g_pBlob[34], &g_pBlob[35], &g_pBlob[36], &g_pBlob[46]);
 
-    blob2vector(&g_pBlob[12], &g_pBlob[37]);
-    blob2vector(&g_pBlob[13], &g_pBlob[38]);
+    blob2vector(&g_pBlob[29], &g_pBlob[37]);
+    blob2vector(&g_pBlob[26], &g_pBlob[38]);
     blob2vector(&g_pBlob[14], &g_pBlob[39]);
     /*auto reg = */concat3(&g_pBlob[37], &g_pBlob[38], &g_pBlob[39], &g_pBlob[47]);
 
@@ -250,7 +254,7 @@ void objectdetect_cnn(const unsigned char * rgbImageData, int width, int height,
     TIME_END("decode")
 
     TIME_START;
-    /*std::vector<FaceRect> facesInfo = */detection_output(&g_pBlob[46], &g_pBlob[47], &g_pBlob[48], &g_pBlob[49], 0.45f, 0.5f, 1000, 512,
+    /*std::vector<FaceRect> facesInfo = */detection_output(&g_pBlob[46], &g_pBlob[47], &g_pBlob[48], &g_pBlob[49], 0.45f, thresh, 1000, 512,
                                                            face_blob, num_faces);
     TIME_END("detection output")
 }
@@ -271,8 +275,8 @@ int* facedetect_cnn(unsigned char * result_buffer, //buffer memory for storing f
     result_buffer[3] = 0;
 
     int num_faces = 0;
-    objectdetect_cnn(rgb_image_data, width, height, step, is_rgb, thresh, &g_pBlob[0], &num_faces);
-    FaceRect* faces = (FaceRect*)(g_pBlob[0].data);
+    objectdetect_cnn(rgb_image_data, width, height, step, is_rgb, thresh, &g_pBlob[11], &num_faces);
+    FaceRect* faces = (FaceRect*)(g_pBlob[11].data);
     num_faces = MIN(num_faces, 1024); //1024 = 0x9000 / (16 * 2 + 4)
 
     int * pCount = (int *)result_buffer;
