@@ -1071,10 +1071,6 @@ void detection_output(const CDataBlob* cls,
         }
     }
 
-//    if (keep_top_k > -1 && size_t(keep_top_k) < final_score_bbox_vec.size()) {
-//        final_score_bbox_vec.resize(keep_top_k);
-//    }
-
     FaceRect *face_rects = (FaceRect*)(face_blob->data);
     size_t face_rects_alloc_size = final_count * sizeof(FaceRect);
     if(face_blob->totalCapacity < face_rects_alloc_size)

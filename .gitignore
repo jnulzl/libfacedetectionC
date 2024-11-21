@@ -15,7 +15,7 @@ test.xml
 .kdev_include_paths
 .vs/
 CMakeSettings.json
-build_
+build*
 modul/
 build-*/
 build/
